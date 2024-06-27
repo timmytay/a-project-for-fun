@@ -97,9 +97,9 @@ string addUnreachableCodeToEachFunction(const string& code) {
 
     // Варианты недостижимого кода для добавления
     vector<string> unreachableCodeSamples = {
-        "    if (0) {\n        cout << \"Этот код никогда не выполнится.\" << endl;\n    }\n",
-        "    goto skip_code;\n    unreachable_code:\n    cout << \"Этот код никогда не выполнится.\" << endl;\n    skip_code:\n",
-        "    while (false) {\n        cout << \"Этот код никогда не выполнится.\" << endl;\n    }\n"
+        "    if (0) {\n        cout << \"Этот код никогда не выполнится.\" << endl;\n    }",
+        "    goto skip_code;\n    unreachable_code:\n    cout << \"Этот код никогда не выполнится.\" << endl;\n    skip_code:",
+        "    while (false) {\n        cout << \"Этот код никогда не выполнится.\" << endl;\n    }"
     };
 
     uniform_int_distribution<mt19937::result_type> dist(1, 100); // Распределение от 1 до 100
