@@ -1,95 +1,3 @@
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <regex>
-#include <random>
-#include <ctime>
-#include <unordered_map>
-#include <Windows.h>
-using namespace std;
-
-// Глобальный генератор случайных чисел
-mt19937 rng(random_device{}());
-
-// Функция для добавления недостижимого кода в случайное место каждой функции
-string addUnreachableCodeToEachFunction(const string& code);
-
-// Функция для генерации случайного имени
-string generateRandomName(unordered_map<string, string>& nameMap);
-
-// Функции для удаления комментариев и пустых строк
-void deleteComments(string& givenCode);
-
-// Обновленная функция для удаления пустых строк и строк, содержащих только пробелы
-void deleteEmptyLines(string& givenCode);
-
-// Функция для редактирования файла и замены переменных и функций
-string editAndObfuscateCode(string givenCode);
-
-// Функция для печати и чтения результата
-
-void readAndPrintResult(const string& filePath);
-
-// Главная функция
-int main() {
-    SetConsoleCP(1251);
-    SetConsoleOutputCP(1251);
-    setlocale(LC_ALL, "Russian");
-
-    string filePath;
-    cout << "Введите название файла: "; cin >> filePath;
-
-    // Читаем содержимое исходного файла в строку
-    ifstream fileIn(filePath);
-    if (!fileIn) {
-        cerr << "Не удалось открыть файл." << endl;
-        return 1;
-    }
-    stringstream buffer;
-    buffer << fileIn.rdbuf();
-    string code = buffer.str();
-    fileIn.close();
-
-    // Редактируем и обфусцируем код
-    string obfuscatedCode = editAndObfuscateCode(code);
-
-    // Добавляем недостижимый код
-    string finalCode = addUnreachableCodeToEachFunction(obfuscatedCode);
-
-    // Записываем модифицированный код в новый файл
-    ofstream fileOut("output.txt");
-    if (!fileOut) {
-        cerr << "Не удалось открыть файл для записи." << endl;
-        return 1;
-    }
-    fileOut << finalCode;
-    fileOut.close();
-
-    cout << "Обработка файла завершена. Результат записан в output.txt" << endl;
-
-    // Читаем и выводим результат
-    readAndPrintResult("output.txt");
-
-    return 0;
-}
-
-// Прототипы функций
-
-// Функция для печати и чтения результата
-void readAndPrintResult(const string& filePath) {
-    ifstream fileInResult(filePath);
-    if (!fileInResult) {
-        cerr << "Не удалось открыть файл " << filePath << " для чтения." << endl;
-        return;
-    }
-    string line;
-    cout << "\nРезультат:\n";
-    while (getline(fileInResult, line)) {
-        cout << line << endl;
-    }
-    fileInResult.close();
-}
 // Функция для добавления недостижимого кода в случайное место каждой функции
 string addUnreachableCodeToEachFunction(const string& code) {
     // Регулярное выражение для поиска определений всех функций
@@ -97,18 +5,19 @@ string addUnreachableCodeToEachFunction(const string& code) {
 
     // Варианты недостижимого кода для добавления
     vector<string> unreachableCodeSamples = {
-        "    if (0) {\n        cout << \"Этот код никогда не выполнится.\" << endl;\n    }",
-        "    goto skip_code;\n    unreachable_code:\n    cout << \"Этот код никогда не выполнится.\" << endl;\n    skip_code:",
-        "    while (false) {\n        cout << \"Этот код никогда не выполнится.\" << endl;\n    }"
+        "    if (0) {\n        cout << \"Этот код никогда не выполнится.\" << endl;\n    }\n",
+        "    goto skip_code;\n    unreachable_code:\n    cout << \"Этот код никогда не выполнится.\" << endl;\n    skip_code:\n",
+        "    while (false) {\n        cout << \"Этот код никогда не выполнится.\" << endl;\n    }\n"
     };
 
     uniform_int_distribution<mt19937::result_type> dist(1, 100); // Распределение от 1 до 100
     uniform_int_distribution<mt19937::result_type> codeDist(0, unreachableCodeSamples.size() - 1); // Для выбора варианта кода
+    uniform_int_distribution<mt19937::result_type> positionDist(0, 1); // Для выбора позиции кода (0 - начало, 1 - конец)
 
     size_t searchStartPos = 0; // Начальная позиция для поиска функций
     string modifiedCode = code;
 
-    // Проходим через все функции и добавляем один из вариантов недостижимого кода в случайное место с вероятностью 50%
+    // Проходим через все функции и добавляем один из вариантов недостижимого кода в начало или конец функции с вероятностью 50%
     while (true) {
         sregex_iterator iter(modifiedCode.begin() + searchStartPos, modifiedCode.end(), functionRegex);
         if (iter == sregex_iterator()) break; // Если функции не найдены, выходим из цикла
@@ -120,7 +29,7 @@ string addUnreachableCodeToEachFunction(const string& code) {
             // Генерируем случайное число и решаем, вставлять ли недостижимый код
             if (dist(rng) <= 50) { // 50% вероятность вставки недостижимого кода
                 string unreachableCode = unreachableCodeSamples[codeDist(rng)]; // Выбираем случайный вариант кода
-                size_t insertPos = functionStartPos + match.length();
+                size_t insertPos = positionDist(rng) == 0 ? functionStartPos + match.length() : functionEndPos;
                 modifiedCode.insert(insertPos, unreachableCode);
                 searchStartPos = insertPos + unreachableCode.length(); // Обновляем позицию для поиска следующей функции
             } else {
@@ -132,100 +41,4 @@ string addUnreachableCodeToEachFunction(const string& code) {
     }
 
     return modifiedCode;
-}
-// Функция для генерации случайного имени
-
-string generateRandomName(unordered_map<string, string>& nameMap) {
-    string letters = "abcdefghijklmnopqrstuvwxyz_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    string randomName;
-    uniform_int_distribution<> dist(5, 10); // Распределение для длины имени
-
-    do {
-        randomName.clear();
-        int length = dist(rng); // Случайная длина имени
-        for (int i = 0; i < length; ++i) {
-            randomName += letters[rng() % letters.size()];
-        }
-    } while (nameMap.find(randomName) != nameMap.end()); // Проверяем, что имя уникально
-
-    return randomName;
-}
-
-// Функции для удаления комментариев и пустых строк
-
-void deleteComments(string& givenCode) {
-    size_t beginningComment = givenCode.find("/*");
-    while (beginningComment != string::npos) {
-        size_t eoComment = givenCode.find("*/", beginningComment);
-        if (eoComment != string::npos) {
-            givenCode.erase(beginningComment, eoComment - beginningComment + 2);
-        }
-        else {
-            break; // Не найден конец комментария, выходим из цикла
-        }
-        beginningComment = givenCode.find("/*");
-    }
-    beginningComment = givenCode.find("//");
-    while (beginningComment != string::npos) {
-        size_t eoComment = givenCode.find("\n", beginningComment);
-        if (eoComment != string::npos) {
-            givenCode.erase(beginningComment, eoComment - beginningComment);
-        }
-        else {
-            givenCode.erase(beginningComment); // Удаляем комментарий "//" до конца строки
-            break;
-        }
-        beginningComment = givenCode.find("//");
-    }
-}
-
-// Обновленная функция для удаления пустых строк и строк, содержащих только пробелы
-
-void deleteEmptyLines(string& givenCode) {
-    // Регулярное выражение для поиска пустых строк и строк, содержащих только пробелы
-    regex emptyLineRegex("^\\s*$");
-
-    // Заменяем все найденные строки на пустую строку
-    givenCode = regex_replace(givenCode, emptyLineRegex, "", regex_constants::format_default);
-
-    // Удаляем возможные повторяющиеся переводы строк после удаления пустых строк
-    size_t pos = 0;
-    while ((pos = givenCode.find("\n\n", pos)) != string::npos) {
-        givenCode.erase(pos, 1);
-    }
-}
-
-// Функция для редактирования файла и замены переменных и функций
-
-string editAndObfuscateCode(string givenCode) {
-    deleteComments(givenCode);
-    deleteEmptyLines(givenCode);
-    size_t pos = givenCode.find('\n');
-    if (pos != string::npos) {
-        givenCode.erase(pos, 1);
-    }
-    // Регулярное выражение для поиска переменных и функций
-    regex variableFunctionRegex("([a-zA-Z_]\\w*)\\s*(?=\\(|\\s*=|\\s*;)");
-    sregex_iterator it(givenCode.begin(), givenCode.end(), variableFunctionRegex);
-    sregex_iterator itEnd;
-
-    unordered_map<string, string> nameMap; // Словарь для хранения соответствий оригинальных и новых имен
-
-    while (it != itEnd) {
-        smatch match = *it;
-        string originalName = match.str(1);
-        if (originalName != "int" && originalName != "if" && originalName != "using" && originalName != "main" && originalName != "std" && originalName != "goto" && nameMap.find(originalName) == nameMap.end()) {
-            string randomName = generateRandomName(nameMap);
-            nameMap[originalName] = randomName; // Сохраняем новое имя в словаре
-        }
-        ++it;
-    }
-
-    // Заменяем все вхождения оригинальных имен на новые
-    for (const auto& pair : nameMap) {
-        regex varFuncRegex("\\b" + pair.first + "\\b");
-        givenCode = regex_replace(givenCode, varFuncRegex, pair.second);
-    }
-
-    return givenCode;
 }
