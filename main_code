@@ -38,10 +38,10 @@ int main() {
     setlocale(LC_ALL, "Russian");
 
     string filePath;
-    cout << "Введите название файла (файл - .txt): "; cin >> filePath;
+    cout << "Введите название файла: "; cin >> filePath;
 
     // Читаем содержимое исходного файла в строку
-    ifstream fileIn(filePath + ".txt");
+    ifstream fileIn(filePath);
     if (!fileIn) {
         cerr << "Не удалось открыть файл." << endl;
         return 1;
