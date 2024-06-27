@@ -90,21 +90,25 @@ void readAndPrintResult(const string& filePath) {
     }
     fileInResult.close();
 }
-
 // Функция для добавления недостижимого кода в случайное место каждой функции
 string addUnreachableCodeToEachFunction(const string& code) {
     // Регулярное выражение для поиска определений всех функций
     regex functionRegex("(\\w+\\s+\\w+\\s*\\(.*\\)\\s*\\{)");
 
-    // Недостижимый код для добавления
-    string unreachableCode = "    if (false)\n    {\n\treturn -1;\n    }";
+    // Варианты недостижимого кода для добавления
+    vector<string> unreachableCodeSamples = {
+        "    if (0) {\n        cout << \"Этот код никогда не выполнится.\" << endl;\n    }\n",
+        "    goto skip_code;\n    unreachable_code:\n    cout << \"Этот код никогда не выполнится.\" << endl;\n    skip_code:\n",
+        "    while (false) {\n        cout << \"Этот код никогда не выполнится.\" << endl;\n    }\n"
+    };
 
-    uniform_int_distribution<mt19937::result_type> dist(1, 2); // Распределение 1-2
+    uniform_int_distribution<mt19937::result_type> dist(1, 100); // Распределение от 1 до 100
+    uniform_int_distribution<mt19937::result_type> codeDist(0, unreachableCodeSamples.size() - 1); // Для выбора варианта кода
 
     size_t searchStartPos = 0; // Начальная позиция для поиска функций
     string modifiedCode = code;
 
-    // Проходим через все функции и добавляем недостижимый код в случайное место
+    // Проходим через все функции и добавляем один из вариантов недостижимого кода в случайное место с вероятностью 50%
     while (true) {
         sregex_iterator iter(modifiedCode.begin() + searchStartPos, modifiedCode.end(), functionRegex);
         if (iter == sregex_iterator()) break; // Если функции не найдены, выходим из цикла
@@ -113,26 +117,22 @@ string addUnreachableCodeToEachFunction(const string& code) {
         size_t functionStartPos = match.position() + searchStartPos;
         size_t functionEndPos = modifiedCode.find("}", functionStartPos);
         if (functionEndPos != string::npos) {
-            size_t insertPos;
-            if (dist(rng) == 1) { // Если 1, добавляем в начало функции
-                insertPos = functionStartPos + match.length();
+            // Генерируем случайное число и решаем, вставлять ли недостижимый код
+            if (dist(rng) <= 50) { // 50% вероятность вставки недостижимого кода
+                string unreachableCode = unreachableCodeSamples[codeDist(rng)]; // Выбираем случайный вариант кода
+                size_t insertPos = functionStartPos + match.length();
                 modifiedCode.insert(insertPos, unreachableCode);
                 searchStartPos = insertPos + unreachableCode.length(); // Обновляем позицию для поиска следующей функции
+            } else {
+                searchStartPos = functionEndPos + 1; // Пропускаем функцию без добавления кода
             }
-            else { // Если 2, добавляем в конец функции
-                insertPos = functionEndPos;
-                modifiedCode.insert(insertPos, unreachableCode);
-                searchStartPos = insertPos + unreachableCode.length(); // Обновляем позицию для поиска следующей функции
-            }
-        }
-        else {
+        } else {
             searchStartPos += match.length(); // Обновляем позицию для поиска следующей функции
         }
     }
 
     return modifiedCode;
 }
-
 // Функция для генерации случайного имени
 
 string generateRandomName(unordered_map<string, string>& nameMap) {
