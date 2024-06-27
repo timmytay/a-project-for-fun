@@ -214,7 +214,7 @@ string editAndObfuscateCode(string givenCode) {
     while (it != itEnd) {
         smatch match = *it;
         string originalName = match.str(1);
-        if (originalName != "int" && originalName != "if" && originalName != "using" && originalName != "main" && originalName != "std" && nameMap.find(originalName) == nameMap.end()) {
+        if (originalName != "int" && originalName != "if" && originalName != "using" && originalName != "main" && originalName != "std" && originalName != "goto" && nameMap.find(originalName) == nameMap.end()) {
             string randomName = generateRandomName(nameMap);
             nameMap[originalName] = randomName; // Сохраняем новое имя в словаре
         }
